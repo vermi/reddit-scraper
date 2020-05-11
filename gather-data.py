@@ -61,11 +61,12 @@ def gather(sub_name, p_sort, c_sort, num):
             "comments": {},
         }
 
+        print("Gathering comments", end=" ... ", flush=True)
         post.comment_sort = c_sort
         post.comments.replace_more(limit=None)
 
         comments_dict = {}
-        print("Gathering comments", end=" ... ", flush=True)
+
         for comment in post.comments.list():
             comments_dict[comment.id] = {
                 "date_created": convert_time(comment.created),
