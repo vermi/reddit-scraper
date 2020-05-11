@@ -40,7 +40,7 @@ def gather(sub_name, p_sort, c_sort, num):
 
     print("Gathering data, please be patient.")
     for post in sub_actions[p_sort](limit=num):
-        print("Gathering post", post.id, end=" ... ")
+        print("Gathering post", post.id, end=" ... ", flush=True)
         posts[post.id] = {
             "title": post.title,
             "flair": post.link_flair_text,
@@ -65,7 +65,7 @@ def gather(sub_name, p_sort, c_sort, num):
         post.comments.replace_more(limit=None)
 
         comments_dict = {}
-        print("Gathering comments", end=" ... ")
+        print("Gathering comments", end=" ... ", flush=True)
         for comment in post.comments.list():
             comments_dict[comment.id] = {
                 "date_created": convert_time(comment.created),
@@ -84,7 +84,7 @@ def gather(sub_name, p_sort, c_sort, num):
     filename = "./data/reddit_{0}_{1}.json"
     filename = filename.format(sub_name, today())
 
-    print("Data gathered, writing to file", filename, end=" ... ")
+    print("Data gathered, writing to file", filename, end=" ... ", flush=True)
     with open(filename, "w") as fp:
         fp.write(json.dumps(posts, indent=4))
 
