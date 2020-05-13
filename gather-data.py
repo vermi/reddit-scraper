@@ -38,7 +38,15 @@ def gather(sub_name, p_sort, c_sort, num):
 
     posts = {}
 
-    print("Gathering data, please be patient.")
+    print(
+        "Gathering {0} {1} {2}, and comments sorted by {3}, from r/{4}. Please be patient.".format(
+            "all" if not num else num,
+            p_sort,
+            "posts" if num != 1 else "post",
+            c_sort,
+            sub_name,
+        )
+    )
     for post in sub_actions[p_sort](limit=num):
         print("Gathering post", post.id, end=" ... ", flush=True)
         posts[post.id] = {
