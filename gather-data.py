@@ -160,7 +160,9 @@ def gather(p_sort, c_sort, num):
         writeJson()
 
     except prawcore.PrawcoreException:
-        print("\nAccess to r/{0} is not currently possible. Bailing.\n".format(sub_name))
+        print(
+            "\nAccess to r/{0} is not currently possible. Bailing.\n".format(sub_name)
+        )
         sys.exit(0)
 
 
