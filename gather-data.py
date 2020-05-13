@@ -1,8 +1,23 @@
 #!/Users/justin/.pyenv/shims/python
+"""Reddit Data Gatherer:
+
+This script allows the user to scrape up to 1024 posts, and associated comments, from
+ the specified subreddit.
+
+The 'praw' module and valid reddit API credentials are required for the script to
+ function correctly.
+
+The subreddit name is required; all other command-line arguments are optional.
+
+A keyboard interrupt (Ctrl-C) can be used to stop the gathering process and immediately
+ write any collected information to disk.
+"""
 
 import argparse
+import configparser
 import datetime as dt
 import json
+import os.path
 import signal
 import sys
 
@@ -17,6 +32,7 @@ import prawcore
 posts = {}
 comments_dict = {}
 sub_name = ""
+stdoutOnly = False
 
 
 def convert_time(object):
@@ -28,33 +44,52 @@ def today():
 
 
 def writeJson():
-    filename = "./data/reddit_{0}_{1}.json"
-    filename = filename.format(sub_name, today())
+    if stdoutOnly:
+        print("\n! No JSON file will be written.\n")
+        print(json.dumps(posts, indent=4), "\n")
+    else:
+        filename = "./data/reddit_{0}_{1}.json"
+        filename = filename.format(sub_name, today())
 
-    print("Data gathered, writing to file", filename, end=" ... ", flush=True)
-    with open(filename, "w") as fp:
-        fp.write(json.dumps(posts, indent=4))
+        print("\n* Writing to file", filename, end=" ... ", flush=True)
+        with open(filename, "w") as fp:
+            fp.write(json.dumps(posts, indent=4))
 
-    print("Write complete.\n")
+        print("Write complete.\n")
 
 
 def sigintHandler(signal, frame):
-    print("\nSIGINT RECEIVED -- dumping to file.\n")
+    print("\n\n! SIGINT RECEIVED -- dumping to file.")
     writeJson()
     sys.exit(0)
 
 
 def gather(p_sort, c_sort, num):
-    Reddit = praw.Reddit(
-        client_id="KoMi6u2CY6Mnfg",
-        client_secret="QaqFg2U6ARDxLN-n7G7ayq5_kaY",
-        user_agent="propaganda by u/the_vermi",
-        username="the_vermi",
-        password="g,UNzDAwLg9u",
-    )
+    config = configparser.ConfigParser()
+    if os.path.isfile("config.ini"):
+        config.read("config.ini")
+    else:
+        print("\n! Unable to find config.ini. Bailing.\n")
+        sys.exit(0)
+    try:
+        Reddit = praw.Reddit(
+            client_id=config["APP"]["client_id"],
+            client_secret=config["APP"]["client_secret"],
+            user_agent=config["APP"]["agent"],
+            username=config["USER"]["username"],
+            password=config["USER"]["password"],
+        )
 
-    Reddit.read_only = True
+        if Reddit.user.me():
+            print("\n* You are currently logged in as u/{0}".format(Reddit.user.me()))
+        else:
+            print("\n* You are not currently logged in.")
 
+        Reddit.read_only = True
+
+    except prawcore.exceptions.ResponseException:
+        print("\nUnable to authenticate API access. Check credentials and try again.\n")
+        sys.exit(0)
     sub = Reddit.subreddit(sub_name)
 
     try:
@@ -67,7 +102,7 @@ def gather(p_sort, c_sort, num):
         }
 
         print(
-            "\nGathering {0} {1} {2}, and comments sorted by {3}, from r/{4}. Please be patient.".format(
+            "\n| Gathering {0} {1} {2}, and comments sorted by {3}, from r/{4}. Please be patient.".format(
                 "all" if not num else num,
                 p_sort,
                 "posts" if num != 1 else "post",
@@ -79,7 +114,7 @@ def gather(p_sort, c_sort, num):
         global posts
 
         for post in sub_actions[p_sort](limit=num):
-            print("Gathering post", post.id, end=" ... ", flush=True)
+            print("|- Gathering post", post.id, end=" ... ", flush=True)
             posts[post.id] = {
                 "title": post.title,
                 "flair": post.link_flair_text,
@@ -121,17 +156,16 @@ def gather(p_sort, c_sort, num):
             print("Post gathered successfully.")
             posts[post.id]["comments"] = comments_dict
 
+        print("\n* Successfully gathered {0} posts.".format(num))
         writeJson()
 
     except prawcore.PrawcoreException:
-        print("Access to r/{0} is not currently possible. Bailing.\n".format(sub_name))
+        print("\nAccess to r/{0} is not currently possible. Bailing.\n".format(sub_name))
         sys.exit(0)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="A tool to gather some data from reddit."
-    )
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("subreddit", help="Choose the subreddit to scrape.")
     parser.add_argument(
         "-p",
@@ -144,11 +178,20 @@ def main():
         help="Comment sort order. Default = controversial",
     )
     parser.add_argument("-n", type=int, help="Number of posts to scrape. Default = all")
+    parser.add_argument(
+        "--stdout",
+        dest="stdoutOnly",
+        action="store_true",
+        help="Specify this option to print gathered data to STDOUT instead of a JSON file.",
+    )
 
     args = parser.parse_args()
 
     global sub_name
+    global stdoutOnly
+
     sub_name = args.subreddit
+    stdoutOnly = args.stdoutOnly
 
     gather(
         args.p if args.p else "hot",
