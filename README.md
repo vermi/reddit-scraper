@@ -17,10 +17,10 @@ A keyboard interrupt (Ctrl-C) can be used to stop the gathering process and imme
 
 1. Clone this repository.
 2. `pip install -r requirements.txt`
-3. ./reddit-scraper.py --help
+3. `./reddit-scraper.py --help`
 
 ## References
 
-For a more detailed explanation of how PRAW works, please visit [the PRAW documentation][1]
+For a more detailed explanation of how PRAW works, please visit [the PRAW documentation][1].
 
 [1]: https://praw.readthedocs.io/en/latest/index.html
