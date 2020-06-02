@@ -5,7 +5,7 @@
 This script allows the user to scrape up to 1024 posts, and associated comments, from
  the specified subreddit.
 
-The 'praw' module and valid reddit API credentials are required for the script to
+The `praw` module and valid reddit API credentials are required for the script to
  function correctly.
 
 The subreddit name is required; all other command-line arguments are optional.
