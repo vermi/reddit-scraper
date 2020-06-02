@@ -112,10 +112,13 @@ def gather(p_sort, c_sort, num):
         )
 
         global posts
+        posts["subreddit"] = sub_name
+        posts["version"] = 7
+        posts["posts"] = {}
 
         for post in sub_actions[p_sort](limit=num):
             print("|- Gathering post", post.id, end=" ... ", flush=True)
-            posts[post.id] = {
+            posts["posts"][post.id] = {
                 "title": post.title,
                 "flair": post.link_flair_text,
                 "date_created": convert_time(post.created),
@@ -140,7 +143,6 @@ def gather(p_sort, c_sort, num):
             post.comments.replace_more(limit=None)
 
             global comments_dict
-
             for comment in post.comments.list():
                 comments_dict[comment.id] = {
                     "date_created": convert_time(comment.created),
@@ -154,7 +156,7 @@ def gather(p_sort, c_sort, num):
                     "text": comment.body,
                 }
             print("Post gathered successfully.")
-            posts[post.id]["comments"] = comments_dict
+            posts["posts"][post.id]["comments"] = comments_dict
 
         print("\n* Successfully gathered {0} posts.".format(num))
         writeJson()
