@@ -1,4 +1,4 @@
-#!/Users/justin/.pyenv/shims/python
+#!/usr/bin/env python3
 """Reddit Data Gatherer:
 
 This script allows the user to scrape up to 1024 posts, and associated comments, from
