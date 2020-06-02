@@ -16,7 +16,7 @@ A keyboard interrupt (Ctrl-C) can be used to stop the gathering process and imme
 import argparse
 import configparser
 import datetime as dt
-import json
+import ujson as json
 import os.path
 import signal
 import sys
