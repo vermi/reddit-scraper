@@ -109,7 +109,6 @@ def gather(p_sort, c_sort, num):
         if stdoutOnly:
             global posts
             posts["subreddit"] = sub_name
-            posts["version"] = 7
             posts["posts"] = {}
         else:
             db.insert({"subreddit": sub_name})
