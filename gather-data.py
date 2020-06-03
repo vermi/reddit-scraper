@@ -114,8 +114,9 @@ def gather(p_sort, c_sort, num):
         else:
             db.insert({"subreddit": sub_name})
 
+        i = 1
         for p in sub_actions[p_sort](limit=num):
-            print("|- Gathering post", p.id, end=" ... ", flush=True)
+            print("|- {0} Gathering post".format(i), p.id, end=" ... ", flush=True)
             post = {
                 "title": p.title,
                 "flair": p.link_flair_text,
@@ -171,6 +172,8 @@ def gather(p_sort, c_sort, num):
 
             if stdoutOnly:
                 posts["posts"][post.id]["comments"] = comments_dict
+
+            i += 1
 
         print("\n* Successfully gathered {0} posts.".format("all" if not num else num))
 
