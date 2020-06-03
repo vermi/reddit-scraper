@@ -17,6 +17,7 @@ import argparse
 import configparser
 import datetime as dt
 import ujson as json
+from tinydb import TinyDB
 import os.path
 import signal
 import sys
@@ -43,24 +44,11 @@ def today():
     return dt.date.today().isoformat()
 
 
-def writeJson():
-    if stdoutOnly:
-        print("\n! No JSON file will be written.\n")
-        print(json.dumps(posts, indent=4), "\n")
-    else:
-        filename = "./data/reddit_{0}_{1}.json"
-        filename = filename.format(sub_name, today())
-
-        print("\n* Writing to file", filename, end=" ... ", flush=True)
-        with open(filename, "w") as fp:
-            fp.write(json.dumps(posts, indent=4))
-
-        print("Write complete.\n")
-
-
 def sigintHandler(signal, frame):
-    print("\n\n! SIGINT RECEIVED -- dumping to file.")
-    writeJson()
+    print("\n\n! SIGINT RECEIVED -- bailing")
+    if stdoutOnly:
+        print("\n! No file has been written.\n")
+        print(json.dumps(posts, indent=4), "\n")
     sys.exit(0)
 
 
@@ -92,6 +80,13 @@ def gather(p_sort, c_sort, num):
         sys.exit(0)
     sub = Reddit.subreddit(sub_name)
 
+    if not stdoutOnly:
+        filename = "./data/reddit_{0}_{1}.json"
+        filename = filename.format(sub_name, today())
+        db = TinyDB(filename, indent=4)
+        db.table("posts")
+        db.table("comments")
+
     try:
         sub_actions = {
             "hot": sub.hot,
@@ -111,55 +106,77 @@ def gather(p_sort, c_sort, num):
             )
         )
 
-        global posts
-        posts["subreddit"] = sub_name
-        posts["version"] = 7
-        posts["posts"] = {}
+        if stdoutOnly:
+            global posts
+            posts["subreddit"] = sub_name
+            posts["version"] = 7
+            posts["posts"] = {}
+        else:
+            db.insert({"subreddit": sub_name})
 
-        for post in sub_actions[p_sort](limit=num):
-            print("|- Gathering post", post.id, end=" ... ", flush=True)
-            posts["posts"][post.id] = {
-                "title": post.title,
-                "flair": post.link_flair_text,
-                "date_created": convert_time(post.created),
-                "author": post.author.name if post.author else "[deleted]",
-                "upvotes": post.score,
-                "upvote_ratio": post.upvote_ratio,
-                "edited": post.edited
-                if str(post.edited).isalpha()
-                else convert_time(post.edited),
-                "locked": post.locked,
-                "nsfw": post.over_18,
-                "spoiler": post.spoiler,
-                "sticky": post.stickied,
-                "url": post.url,
-                "comment_count": post.num_comments,
-                "text": post.selftext,
+        for p in sub_actions[p_sort](limit=num):
+            print("|- Gathering post", p.id, end=" ... ", flush=True)
+            post = {
+                "title": p.title,
+                "flair": p.link_flair_text,
+                "date_created": convert_time(p.created),
+                "author": p.author.name if p.author else "[deleted]",
+                "upvotes": p.score,
+                "upvote_ratio": p.upvote_ratio,
+                "edited": p.edited
+                if str(p.edited).isalpha()
+                else convert_time(p.edited),
+                "locked": p.locked,
+                "nsfw": p.over_18,
+                "spoiler": p.spoiler,
+                "sticky": p.stickied,
+                "url": p.url,
+                "comment_count": p.num_comments,
+                "text": p.selftext,
                 "comments": {},
             }
 
-            print("Gathering comments", end=" ... ", flush=True)
-            post.comment_sort = c_sort
-            post.comments.replace_more(limit=None)
+            if stdoutOnly:
+                posts["posts"][p.id] = post
+            else:
+                post["id"] = p.id
+                db.table("posts").insert(post)
 
-            global comments_dict
-            for comment in post.comments.list():
-                comments_dict[comment.id] = {
-                    "date_created": convert_time(comment.created),
-                    "author": comment.author.name if comment.author else "[deleted]",
-                    "upvotes": comment.score,
-                    "edited": comment.edited
-                    if str(comment.edited).isalpha()
-                    else convert_time(comment.edited),
-                    "is_op": comment.is_submitter,
-                    "sticky": comment.stickied,
-                    "text": comment.body,
+            print("Gathering comments", end=" ... ", flush=True)
+            p.comment_sort = c_sort
+            p.comments.replace_more(limit=None)
+
+            for c in p.comments.list():
+                comment = {
+                    "parent": c.parent_id,
+                    "date_created": convert_time(c.created),
+                    "author": c.author.name if c.author else "[deleted]",
+                    "upvotes": c.score,
+                    "edited": c.edited
+                    if str(c.edited).isalpha()
+                    else convert_time(c.edited),
+                    "is_op": c.is_submitter,
+                    "sticky": c.stickied,
+                    "text": c.body,
                 }
+
+                if stdoutOnly:
+                    global comments_dict
+                    comments_dict[c.id] = comment
+                else:
+                    comment["id"] = c.id
+                    db.table("comments").insert(comment)
+
             print("Post gathered successfully.")
-            posts["posts"][post.id]["comments"] = comments_dict
+
+            if stdoutOnly:
+                posts["posts"][post.id]["comments"] = comments_dict
 
         print("\n* Successfully gathered {0} posts.".format("all" if not num else num))
-        writeJson()
+
+        if stdoutOnly:
+            print("\n! No file has been written.\n")
+            print(json.dumps(posts, indent=4), "\n")
 
     except prawcore.PrawcoreException:
         print(
