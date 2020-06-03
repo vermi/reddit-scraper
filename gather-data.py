@@ -16,14 +16,14 @@ A keyboard interrupt (Ctrl-C) can be used to stop the gathering process and imme
 import argparse
 import configparser
 import datetime as dt
-import ujson as json
-from tinydb import TinyDB
 import os.path
 import signal
 import sys
 
 import praw
 import prawcore
+import ujson as json
+from tinydb import TinyDB
 
 # Uncomment for debugging.
 # from logging import basicConfig, DEBUG
