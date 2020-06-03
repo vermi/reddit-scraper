@@ -158,7 +158,7 @@ def gather(p_sort, c_sort, num):
             print("Post gathered successfully.")
             posts["posts"][post.id]["comments"] = comments_dict
 
-        print("\n* Successfully gathered {0} posts.".format(num))
+        print("\n* Successfully gathered {0} posts.".format("all" if not num else num))
         writeJson()
 
     except prawcore.PrawcoreException:
